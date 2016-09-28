@@ -113,7 +113,15 @@ require(
 
                 expect(callbacks.onSuccess).not.toHaveBeenCalled();
                 expect(callbacks.onError).toHaveBeenCalledWith(jasmine.any(Object));
-                expect(callbacks.onError.calls[0].args[0].message).toMatch(/'undefined' is not an object/);
+
+                // Some browsers give better error messages
+                if (callbacks.onError.calls[0].args[0].message.match(/'undefined' is not an object/) ||
+                    callbacks.onError.calls[0].args[0].message.match(/Cannot read property 'base' of undefined/)) {
+                    expect('the correct error message').toMatch(/the correct error message/);
+                } else {
+                    expect('wrong error message').toMatch(/some message about base not being a property of undefined/);
+
+                }
             });
 
             it('chokes on default exit()', function() {

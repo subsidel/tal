@@ -61,7 +61,8 @@ define(
     ],
     function(Class, KeyEvent, StorageProvider, SessionStorage, require) {
         'use strict';
-
+        var namespaces = {};
+        var deviceMods = {};
         /**
          * Abstract base class for Antie devices.
          * Device classes contain an abstraction layer between the {@link Application} and the environment in which
@@ -608,15 +609,15 @@ define(
             getReferrer: function() {
             },
             /**
-            * Loads an external script that calls a specified callback function.
-            * Used for loading data via JSON-P.
-            * @param {String} url The URL of the script.
-            * @param {RegExp} callbackFunctionRegExp Regular expression to replace matches with callback function name.
-            * @param {Object} callbacks Object containing onSuccess and onLoad callback functions.
-            * @param {Integer} timeout Timeout in milliseconds.
-            * @param {String} [callbackSuffix] Suffix to append to end of callback function name.
-            * @returns The script element that will load the script.
-            */
+             * Loads an external script that calls a specified callback function.
+             * Used for loading data via JSON-P.
+             * @param {String} url The URL of the script.
+             * @param {RegExp} callbackFunctionRegExp Regular expression to replace matches with callback function name.
+             * @param {Object} callbacks Object containing onSuccess and onLoad callback functions.
+             * @param {Integer} timeout Timeout in milliseconds.
+             * @param {String} [callbackSuffix] Suffix to append to end of callback function name.
+             * @returns The script element that will load the script.
+             */
             loadScript: function (url, callbackFunctionRegExp, callbacks, timeout, callbackSuffix) {
                 var self = this;
                 var script = null;
@@ -663,12 +664,12 @@ define(
              */
             loadStyleSheet: function(/*url, callback*/) {
             },
-             /**
-              * Loads a resource from a URL protected by device authentication.
-              * @param {String} url The URL to load.
-              * @param {Object} opts Object containing onLoad and onError callback functions.
-              * @returns The request object used to load the resource.
-              */
+            /**
+             * Loads a resource from a URL protected by device authentication.
+             * @param {String} url The URL to load.
+             * @param {Object} opts Object containing onLoad and onError callback functions.
+             * @returns The request object used to load the resource.
+             */
             loadAuthenticatedURL: function (url, opts) {
                 // Simple implementation - assuming XHR in browser can perform client-authenticated SSL requests
                 return this.loadURL(url, opts);
@@ -953,6 +954,12 @@ define(
                     return this.getPersistentStorage(namespace, opts);
                 }
             },
+            getPersistentStorage: function (namespace, opts) {
+                if(!namespaces[namespace]) {
+                    namespaces[namespace] = new deviceMods.PersistantStorage(namespaces, namespace, opts);
+                }
+                return namespaces[namespace];
+            },
             /**
              * Check to see if volume control is supported on this device.
              * @returns Boolean true if volume control is supported.
@@ -1018,18 +1025,45 @@ define(
          * @memberOf antie.devices.Device
          * @static
          * @function
-         * @param {String} configUrl URL to the device configuration document.
+         * @param {Object} config Device configuration document.
          * @param {Object} callbacks Object containing onSuccess and onError callback functions.
          */
         Device.load = function(config, callbacks) {
             try {
                 require([config.modules.base].concat(config.modules.modifiers), function(DeviceClass) {
-                    try {
-                        callbacks.onSuccess(new DeviceClass(config));
-                    } catch(ex) {
-                        if (callbacks.onError) {
-                            callbacks.onError(ex);
+
+                    function callback() {
+                        try {
+                            callbacks.onSuccess(new DeviceClass(config));
+                        } catch(ex) {
+                            if (callbacks.onError) {
+                                callbacks.onError(ex);
+                            }
                         }
+                    }
+
+                    // Create order from the unordered object
+                    // this allows there to be any number of mods
+                    // specified in the config, and we will still
+                    // know the names
+                    if (config && config.modules && config.modules.mods) {
+                        var modKeys = Object.keys(config.modules.mods);
+                        var modPaths = modKeys.map(function (modName) {
+                            return config.modules.mods[modName];
+                        });
+                        require(modPaths, function () {
+                            var args = Array.prototype.slice.call(arguments);
+
+                            deviceMods = modKeys.map(function (modName, i) {
+                                return [modName, args[i]];
+                            }).reduce(function (acc, next) {
+                                acc[next[0]] = next[1];
+                                return acc;
+                            }, {});
+                            callback();
+                        });
+                    } else {
+                        callback();
                     }
                 });
             } catch(ex) {

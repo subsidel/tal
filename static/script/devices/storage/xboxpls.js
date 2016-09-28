@@ -12,9 +12,7 @@ define(
     function(Device, StorageProvider) {
         'use strict';
 
-        var namespaces = {};
-
-        var XboxStorage = StorageProvider.extend({
+        return StorageProvider.extend({
             init: function() {
                 /* global Windows: true */
                 this._storage = Windows.Storage.ApplicationData.current.localSettings.values;
@@ -48,12 +46,6 @@ define(
                 this._storage.clear();
             }
         });
-
-        Device.prototype.getPersistentStorage = function(namespace) {
-            if(!namespaces[namespace]) {
-                namespaces[namespace] = new XboxStorage(namespace);
-            }
-            return namespaces[namespace];
-        };
+     //   return XboxStorage;
     }
 );
