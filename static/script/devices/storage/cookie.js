@@ -34,6 +34,7 @@ define(
         'use strict';
 
         // http://www.quirksmode.org/js/cookies.html
+        var namespaces = {};
 
         var default_days = 366;
         var pathParts = document.location.pathname.split('/');
@@ -94,9 +95,8 @@ define(
              * @constructor
              * @ignore
              */
-            init: function(namespaces, namespace, opts) {
+            init: function(namespace, opts) {
                 this._super();
-                this._namespaces = namespaces;
                 this._namespace = namespace;
                 this._opts = opts || {};
 
@@ -126,7 +126,7 @@ define(
                 // delete it from the stored namespaces
                 // so it will be reloaded the next time
                 // we get it
-                delete this._namespaces[this._namespace];
+                delete namespaces[this._namespace];
             },
             _isEmpty: function() {
                 var prop;
@@ -146,6 +146,13 @@ define(
                 }
             }
         });
+
+        CookieStorage.getInstance = function (namespace, opts) {
+            if(!namespaces[namespace]) {
+                namespaces[namespace] = new CookieStorage(namespace, opts);
+            }
+            return namespaces[namespace];
+        };
 
         return CookieStorage;
     }

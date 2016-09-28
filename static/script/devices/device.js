@@ -61,7 +61,6 @@ define(
     ],
     function(Class, KeyEvent, StorageProvider, SessionStorage, require) {
         'use strict';
-        var namespaces = {};
         var deviceMods = {};
         /**
          * Abstract base class for Antie devices.
@@ -955,10 +954,7 @@ define(
                 }
             },
             getPersistentStorage: function (namespace, opts) {
-                if(!namespaces[namespace]) {
-                    namespaces[namespace] = new deviceMods.PersistantStorage(namespaces, namespace, opts);
-                }
-                return namespaces[namespace];
+                return deviceMods.PersistantStorage.getInstance(namespace, opts);
             },
             /**
              * Check to see if volume control is supported on this device.
